@@ -1,0 +1,11 @@
+{
+  "name": "calendar-js",
+  "version": "0.0.1",
+  "description": "Remote technical test for Privateaser",
+  "repository": "",
+  "dependencies": {
+    "jquery": "^3.1.1",
+    "lodash": "^4.17.2",
+    "moment-js": "^1.1.15"
+  }
+}
