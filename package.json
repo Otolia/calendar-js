@@ -4,8 +4,8 @@
   "description": "Remote technical test for Privateaser",
   "repository": "",
   "dependencies": {
-    "jquery": "^3.1.1",
-    "lodash": "^4.17.2",
-    "moment-js": "^1.1.15"
+    "jquery": "~3.1.0",
+    "lodash": "~4.17.0",
+    "moment": "~2.17.1"
   }
 }
