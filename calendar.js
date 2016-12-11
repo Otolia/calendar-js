@@ -4,6 +4,7 @@
 
 const ISO_DAY_FORMAT = 'YYYY-MM-DD';
 const READABLE_DAY_FORMAT = 'dddd DD';
+const MOMENT_DATE_HELPER = '2001-01-01 ';
 
 /**
  * Single call function handling the construction of the complete 7 days calendar
@@ -15,7 +16,6 @@ function buildCalendar($container, calObj) {
     console.log(calObj);
 
     var startCal = moment(calObj.from);
-    var endCal = moment(calObj.to);
 
     var sdBodyObj = {};
 
@@ -30,6 +30,7 @@ function buildCalendar($container, calObj) {
     var calcCalendar = {};
 
     calcCalendar.structure = calcCalendarStructure(calObj);
+    calcCalendar.content = calcCalendarContent(calObj);
 
     console.log(calcCalendar);
 }
@@ -84,8 +85,6 @@ function placeEvents(sdBodyObj, calObj) {
         dayDuration = dayEnd.diff(dayStart, 'minutes'),
         sdBodyScale = sdBodyObj.height / dayDuration;
 
-    console.log(dayDuration, sdBodyScale);
-
     for (var i = 0; i < calObj.events.length; i++) {
         var event = calObj.events[i],
             sdBody = sdBodyObj[event.date];
@@ -130,4 +129,48 @@ function calcCalendarStructure(calObj) {
     }
 
     return calStruct;
+}
+
+function calcCalendarContent(calObj) {
+    var startCal = moment(calObj.from),
+        endCal = moment(calObj.to),
+        dayBounds = {start: moment(MOMENT_DATE_HELPER + calObj.dayStartTime), end: moment(MOMENT_DATE_HELPER + calObj.dayEndTime)},
+        events = calObj.events,
+        calContent = {};
+
+    calContent.dayDuration = dayBounds.end.diff(dayBounds.start, 'minutes');
+
+    calContent.dailyContent = {};
+    for (var dayIt = moment(startCal); dayIt.isSameOrBefore(endCal); dayIt.add(1, 'days')) {
+        var dailyEvents = _.filter(events, function (event) {
+            return moment(event.date).isSame(dayIt);
+        });
+        calContent.dailyContent[dayIt.format(ISO_DAY_FORMAT)] = calcCalendarDailyContent(dailyEvents, dayBounds);
+    }
+
+    return calContent;
+}
+/**
+ *
+ * @param dailyEvents array
+ * @param dayBounds
+ */
+function calcCalendarDailyContent(dailyEvents, dayBounds) {
+    var array = [];
+
+    _.forEach(dailyEvents, function (event, it) {
+        var eventStart = moment(MOMENT_DATE_HELPER + event.startTime),
+            eventEnd = moment(MOMENT_DATE_HELPER + event.endTime),
+            calcEvent = {};
+
+        calcEvent.fromDayStart = eventStart.diff(dayBounds.start, 'minutes');
+        calcEvent.duration = eventEnd.diff(eventStart, 'minutes');
+        calcEvent.width = _.round(100 / dailyEvents.length, 3) + '%';
+        calcEvent.order = it;
+        calcEvent.name = event.name;
+
+        array.push(calcEvent);
+    });
+
+    return array;
 }
