@@ -73,6 +73,7 @@ function calcCalendarContent(calObj) {
 
     return calContent;
 }
+
 /**
  *
  * @param dailyEvents array
@@ -90,13 +91,13 @@ function calcCalendarDailyContent(dailyEvents, dayBounds) {
 
         calcEvent.duration = eventEnd.diff(eventStart, 'minutes');
 
-        calcEvent.concurrent = concurrentEvents(dailyEvents, eventStart, eventEnd);
+        calcEvent.concurrent = maxConcurrentEvents(dailyEvents, event, eventStart, eventEnd);
 
-        calcEvent.width = _.round(100 / calcEvent.concurrent, 3) + '%';
+        calcEvent.width = _.round(100 / (calcEvent.concurrent + 1), 3) + '%';
 
         calcEvent.order = it;
 
-        calcEvent.calcFloat = function ($sdBody) {return $sdBody.width() / calcEvent.concurrent * calcEvent.order};
+        calcEvent.calcLeftPos = function ($sdBody) {return $sdBody.width() / (calcEvent.concurrent + 1) * (calcEvent.order % (calcEvent.concurrent + 1));};
 
         calcEvent.name = event.name;
 
@@ -106,19 +107,46 @@ function calcCalendarDailyContent(dailyEvents, dayBounds) {
     return array;
 }
 
-function concurrentEvents(dailyEvents, calcEventStart, calcEventEnd) {
+function maxConcurrentEvents(dailyEvents, calcEvent, calcEventStart, calcEventEnd) {
+    var arr = [],
+        dailyEventsFiltered = _.without(dailyEvents, calcEvent);
+
+
+    arr.push(concurrentEventsForBound(dailyEventsFiltered, calcEventStart));
+    arr.push(concurrentEventsForBound(dailyEventsFiltered, calcEventEnd));
+    arr.push(concurrentEventsForBounds(dailyEventsFiltered, calcEventStart, calcEventEnd));
+
+    return _.max(arr);
+}
+
+function concurrentEventsForBound(dailyEventsFiltered, eventBound) {
     var res = 0;
 
-    _.forEach(dailyEvents, function (event) {
+    _.forEach(dailyEventsFiltered, function (event) {
         var eventStart = moment(MOMENT_DATE_HELPER + event.startTime),
             eventEnd = moment(MOMENT_DATE_HELPER + event.endTime);
 
-        if (calcEventStart.isBetween(eventStart, eventEnd) || calcEventEnd.isBetween(eventStart, eventEnd))
+        if (eventBound.isBetween(eventStart, eventEnd, null, '[]'))
             res++;
     });
 
     return res;
 }
+
+function concurrentEventsForBounds(dailyEventsFiltered, eventBoundStart, eventBoundEnd) {
+    var res = 0;
+
+    _.forEach(dailyEventsFiltered, function (event) {
+        var eventStart = moment(MOMENT_DATE_HELPER + event.startTime),
+            eventEnd = moment(MOMENT_DATE_HELPER + event.endTime);
+
+        if (eventStart.isBetween(eventBoundStart, eventBoundEnd, null, '[]') && eventEnd.isBetween(eventBoundStart, eventBoundEnd, null, '[]'))
+            res++;
+    });
+
+    return res;
+}
+
 
 function buildCalendarStructure($container, dayItObj, calcStructure) {
     var sdBodyObj = {};
@@ -156,15 +184,15 @@ function buildCalendarContent(sdBodyObj, dayItObj, calcContent) {
     for (var dayIt = moment(dayItObj.start); dayIt.isSameOrBefore(dayItObj.end); dayIt.add(1, 'days')) {
         var dayStr = dayIt.format(ISO_DAY_FORMAT),
             dailyEvents = calcContent.dailyContents[dayStr],
-            sdBody = sdBodyObj[dayStr];
+            $sdBody = sdBodyObj[dayStr];
 
         _.forEach(dailyEvents, function(event){
-            buildSingleEvent(sdBody, event, sdBodyScale);
+            buildSingleEvent($sdBody, event, sdBodyScale);
         });
     }
 }
 
-function buildSingleEvent(sdBody, event, sdBodyScale) {
+function buildSingleEvent($sdBody, event, sdBodyScale) {
     var div = $(document.createElement('div'));
 
     div.addClass("event");
@@ -172,10 +200,10 @@ function buildSingleEvent(sdBody, event, sdBodyScale) {
     div.css({
         position:"absolute",
         top:event.fromDayStart * sdBodyScale,
-        left: event.calcFloat(sdBody),
+        left: event.calcLeftPos($sdBody),
         width: event.width,
         height: (event.duration * sdBodyScale) + "px"
     });
 
-    sdBody.append(div);
+    $sdBody.append(div);
 }
