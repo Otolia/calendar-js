@@ -8,7 +8,6 @@ html, body {
 .calendar-wrapper{
     height: inherit;
     width: inherit;
-    background: black;
 }
 
 .single-day {
@@ -18,34 +17,36 @@ html, body {
     -webkit-box-sizing: border-box;
     -moz-box-sizing: border-box;
     box-sizing: border-box;
-    border: 1px solid yellow;
+    border: 1px solid midnightblue;
 }
 
 .sd-header {
     height: 30px;
     line-height: 30px;
     text-align: center;
-    background: green;
+    background: lightblue;
     -webkit-box-sizing: border-box;
     -moz-box-sizing: border-box;
     box-sizing: border-box;
-    border: 1px solid crimson;
+    border: 1px solid dodgerblue;
 }
 
 .sd-body {
+    background-color: aliceblue;
     position: relative;
     float: top;
-    background: blue;
     height: calc(100% - 30px);
 }
 
 .event {
-    color: white;
+    color: darkred;
+    background-color: coral;
     text-align: center;
     -webkit-box-sizing: border-box;
     -moz-box-sizing: border-box;
     box-sizing: border-box;
-    border: 1px solid orange;
+    border: 1px solid orangered;
+    vertical-align: middle;
 }
 
 @media screen and (max-width: 700px) {

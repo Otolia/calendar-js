@@ -15,9 +15,9 @@ const MOMENT_DATE_HELPER = '2001-01-01 ';
 function buildCalendar($container, calObj) {
     console.log(calObj);
 
-    var calcCalendar = calcCalendar(calObj);
+    var calculatedCalendar = calcCalendar(calObj);
 
-    constructCalendar($container, calcCalendar);
+    constructCalendar($container, calculatedCalendar);
 }
 
 /**
@@ -281,7 +281,8 @@ function buildSingleEvent($sdBody, event, sdBodyScale) {
         top:event.fromDayStart * sdBodyScale,
         left: event.calcLeftPos($sdBody),
         width: event.width,
-        height: (event.duration * sdBodyScale) + "px"
+        height: (event.duration * sdBodyScale) + "px",
+        'line-height': (event.duration * sdBodyScale) + "px"
     });
 
     $sdBody.append(div);
