@@ -12,7 +12,6 @@ html, body {
 }
 
 .single-day {
-    width: 14.285%;
     height: inherit;
     float: left;
     background: white;

@@ -15,99 +15,20 @@ const MOMENT_DATE_HELPER = '2001-01-01 ';
 function buildCalendar($container, calObj) {
     console.log(calObj);
 
-    var startCal = moment(calObj.from);
-
-    var sdBodyObj = {};
-
-    buildCalendarStructure($container, startCal, sdBodyObj);
-
-    sdBodyObj.height = sdBodyObj[startCal.format('YYYY-MM-DD')].height();
-
-    placeEvents(sdBodyObj, calObj);
-
-    //# Refactor below
-
     var calcCalendar = {};
 
+    calcCalendar.dayIt = {start: moment(calObj.from), end: moment(calObj.to)};
     calcCalendar.structure = calcCalendarStructure(calObj);
     calcCalendar.content = calcCalendarContent(calObj);
 
     console.log(calcCalendar);
+
+    var sdBodyObj = buildCalendarStructure($container, calcCalendar.dayIt, calcCalendar.structure);
+
+    console.log(sdBodyObj);
+
+    buildCalendarContent(sdBodyObj, calcCalendar.dayIt, calcCalendar.content)
 }
-
-/**
- * Build the 7 days calendar structure (without data) and fill the sdObj with the jQuery of each single column
- *
- * @param $container
- * @param startCal
- * @param sdBodyObj
- */
-function buildCalendarStructure($container, startCal, sdBodyObj) {
-    var dateIt = moment(startCal),
-        i = 0;
-
-    while (i < 7) {
-        sdBodyObj[dateIt.format('YYYY-MM-DD')] = buildSingleDayDiv($container, dateIt);
-        dateIt.add(1, 'days');
-        i++;
-    }
-}
-
-/**
- * Build a column for a single day and return the representation of its body element in jQuery
- *
- * @param $container jQuery
- * @param day moment
- * @returns {jQuery}
- */
-function buildSingleDayDiv($container, day) {
-    var dayDiv = document.createElement('div');
-    dayDiv.className = 'single-day';
-
-    var dayDivHeader = document.createElement('div');
-    dayDivHeader.className = 'sd-header';
-    dayDivHeader.innerHTML = day.format('dddd DD');
-    dayDiv.appendChild(dayDivHeader);
-
-    var dayDivBody = document.createElement('div');
-    dayDivBody.className = 'sd-body';
-    dayDiv.appendChild(dayDivBody);
-
-    $container.append(dayDiv);
-
-    return $(dayDivBody);
-}
-
-function placeEvents(sdBodyObj, calObj) {
-    var dayStart = moment("2000-01-01 " + calObj.dayStartTime),
-        dayEnd = moment("2000-01-01 " + calObj.dayEndTime),
-        dayBounds = {start: dayStart, end: dayEnd},
-        dayDuration = dayEnd.diff(dayStart, 'minutes'),
-        sdBodyScale = sdBodyObj.height / dayDuration;
-
-    for (var i = 0; i < calObj.events.length; i++) {
-        var event = calObj.events[i],
-            sdBody = sdBodyObj[event.date];
-
-        placeSingleEvent(event, sdBody, dayBounds, sdBodyScale);
-    }
-}
-
-function placeSingleEvent(event, sdBody, dayBounds, sdBodyScale) {
-    var div = $(document.createElement('div')),
-        eventStart = moment("2000-01-01 " + event.startTime),
-        eventEnd = moment("2000-01-01 " + event.endTime),
-        eventDuration = eventEnd.diff(eventStart, 'minutes'),
-        dayElapsed = eventStart.diff(dayBounds.start, 'minutes');
-
-    div.addClass("event");
-    div.html(event.name);
-    div.css({position:"absolute", top:dayElapsed * sdBodyScale, width: "100%", height: (eventDuration * sdBodyScale) + "px"});
-
-    sdBody.append(div);
-}
-
-//# Refactor below
 
 /**
  * Calculate the overarching structure of the calendar
@@ -121,11 +42,11 @@ function calcCalendarStructure(calObj) {
 
     calStruct.nbCol = endCal.diff(startCal, 'day') + 1;
 
-    calStruct.sdWidth = _.round(100 / calStruct.nbCol, 3) + 'px';
+    calStruct.sdWidth = _.floor(100 / calStruct.nbCol, 3) + '%';
 
-    calStruct.singleDays = [];
+    calStruct.singleDays = {};
     for (var dayIt = moment(startCal); dayIt.isSameOrBefore(endCal); dayIt.add(1, 'days')) {
-        calStruct.singleDays.push(dayIt.format(READABLE_DAY_FORMAT));
+        calStruct.singleDays[dayIt.format(ISO_DAY_FORMAT)] = dayIt.format(READABLE_DAY_FORMAT);
     }
 
     return calStruct;
@@ -140,12 +61,14 @@ function calcCalendarContent(calObj) {
 
     calContent.dayDuration = dayBounds.end.diff(dayBounds.start, 'minutes');
 
-    calContent.dailyContent = {};
+    calContent.calcSingleDayBodyScale = function(sdBody) { return sdBody.height() / calContent.dayDuration};
+
+    calContent.dailyContents = {};
     for (var dayIt = moment(startCal); dayIt.isSameOrBefore(endCal); dayIt.add(1, 'days')) {
         var dailyEvents = _.filter(events, function (event) {
             return moment(event.date).isSame(dayIt);
         });
-        calContent.dailyContent[dayIt.format(ISO_DAY_FORMAT)] = calcCalendarDailyContent(dailyEvents, dayBounds);
+        calContent.dailyContents[dayIt.format(ISO_DAY_FORMAT)] = calcCalendarDailyContent(dailyEvents, dayBounds);
     }
 
     return calContent;
@@ -164,13 +87,95 @@ function calcCalendarDailyContent(dailyEvents, dayBounds) {
             calcEvent = {};
 
         calcEvent.fromDayStart = eventStart.diff(dayBounds.start, 'minutes');
+
         calcEvent.duration = eventEnd.diff(eventStart, 'minutes');
-        calcEvent.width = _.round(100 / dailyEvents.length, 3) + '%';
+
+        calcEvent.concurrent = concurrentEvents(dailyEvents, eventStart, eventEnd);
+
+        calcEvent.width = _.round(100 / calcEvent.concurrent, 3) + '%';
+
         calcEvent.order = it;
+
+        calcEvent.calcFloat = function ($sdBody) {return $sdBody.width() / calcEvent.concurrent * calcEvent.order};
+
         calcEvent.name = event.name;
 
         array.push(calcEvent);
     });
 
     return array;
+}
+
+function concurrentEvents(dailyEvents, calcEventStart, calcEventEnd) {
+    var res = 0;
+
+    _.forEach(dailyEvents, function (event) {
+        var eventStart = moment(MOMENT_DATE_HELPER + event.startTime),
+            eventEnd = moment(MOMENT_DATE_HELPER + event.endTime);
+
+        if (calcEventStart.isBetween(eventStart, eventEnd) || calcEventEnd.isBetween(eventStart, eventEnd))
+            res++;
+    });
+
+    return res;
+}
+
+function buildCalendarStructure($container, dayItObj, calcStructure) {
+    var sdBodyObj = {};
+
+    for (var dayIt = moment(dayItObj.start); dayIt.isSameOrBefore(dayItObj.end); dayIt.add(1, 'days')) {
+        var dayStr = dayIt.format(ISO_DAY_FORMAT);
+        sdBodyObj[dayStr] = buildDailyStructure($container, calcStructure.sdWidth, calcStructure.singleDays[dayStr]);
+    }
+
+    return sdBodyObj;
+}
+
+function buildDailyStructure($container, sdWidth, name) {
+    var dayDiv = document.createElement('div');
+    dayDiv.className = 'single-day';
+    dayDiv.style.setProperty('width', sdWidth, '');
+
+    var dayDivHeader = document.createElement('div');
+    dayDivHeader.className = 'sd-header';
+    dayDivHeader.innerHTML = name;
+    dayDiv.appendChild(dayDivHeader);
+
+    var dayDivBody = document.createElement('div');
+    dayDivBody.className = 'sd-body';
+    dayDiv.appendChild(dayDivBody);
+
+    $container.append(dayDiv);
+
+    return $(dayDivBody);
+}
+
+function buildCalendarContent(sdBodyObj, dayItObj, calcContent) {
+    var sdBodyScale = calcContent.calcSingleDayBodyScale(sdBodyObj[dayItObj.start.format(ISO_DAY_FORMAT)]);
+
+    for (var dayIt = moment(dayItObj.start); dayIt.isSameOrBefore(dayItObj.end); dayIt.add(1, 'days')) {
+        var dayStr = dayIt.format(ISO_DAY_FORMAT),
+            dailyEvents = calcContent.dailyContents[dayStr],
+            sdBody = sdBodyObj[dayStr];
+
+        _.forEach(dailyEvents, function(event){
+            buildSingleEvent(sdBody, event, sdBodyScale);
+        });
+    }
+}
+
+function buildSingleEvent(sdBody, event, sdBodyScale) {
+    var div = $(document.createElement('div'));
+
+    div.addClass("event");
+    div.html(event.name);
+    div.css({
+        position:"absolute",
+        top:event.fromDayStart * sdBodyScale,
+        left: event.calcFloat(sdBody),
+        width: event.width,
+        height: (event.duration * sdBodyScale) + "px"
+    });
+
+    sdBody.append(div);
 }
