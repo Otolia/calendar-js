@@ -34,10 +34,21 @@ html, body {
 }
 
 .sd-body {
+    position: relative;
     float: top;
     background: blue;
     height: calc(100% - 30px);
 }
+
+.event {
+    color: white;
+    text-align: center;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    border: 1px solid orange;
+}
+
 @media screen and (max-width: 700px) {
     .single-day {
         width: 100%;
