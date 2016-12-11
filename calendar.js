@@ -2,6 +2,9 @@
  * Created by amauryconstant on 04/12/2016.
  */
 
+const ISO_DAY_FORMAT = 'YYYY-MM-DD';
+const READABLE_DAY_FORMAT = 'dddd DD';
+
 /**
  * Single call function handling the construction of the complete 7 days calendar
  *
@@ -14,17 +17,21 @@ function buildCalendar($container, calObj) {
     var startCal = moment(calObj.from);
     var endCal = moment(calObj.to);
 
-    console.log(startCal, endCal);
-
     var sdBodyObj = {};
 
     buildCalendarStructure($container, startCal, sdBodyObj);
 
     sdBodyObj.height = sdBodyObj[startCal.format('YYYY-MM-DD')].height();
 
-    console.log(sdBodyObj);
-
     placeEvents(sdBodyObj, calObj);
+
+    //# Refactor below
+
+    var calcCalendar = {};
+
+    calcCalendar.structure = calcCalendarStructure(calObj);
+
+    console.log(calcCalendar);
 }
 
 /**
@@ -99,4 +106,28 @@ function placeSingleEvent(event, sdBody, dayBounds, sdBodyScale) {
     div.css({position:"absolute", top:dayElapsed * sdBodyScale, width: "100%", height: (eventDuration * sdBodyScale) + "px"});
 
     sdBody.append(div);
+}
+
+//# Refactor below
+
+/**
+ * Calculate the overarching structure of the calendar
+ * @param calObj
+ * @returns {{}}
+ */
+function calcCalendarStructure(calObj) {
+    var startCal = moment(calObj.from),
+        endCal = moment(calObj.to),
+        calStruct = {};
+
+    calStruct.nbCol = endCal.diff(startCal, 'day') + 1;
+
+    calStruct.sdWidth = _.round(100 / calStruct.nbCol, 3) + 'px';
+
+    calStruct.singleDays = [];
+    for (var dayIt = moment(startCal); dayIt.isSameOrBefore(endCal); dayIt.add(1, 'days')) {
+        calStruct.singleDays.push(dayIt.format(READABLE_DAY_FORMAT));
+    }
+
+    return calStruct;
 }
