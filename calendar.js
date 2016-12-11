@@ -15,25 +15,32 @@ const MOMENT_DATE_HELPER = '2001-01-01 ';
 function buildCalendar($container, calObj) {
     console.log(calObj);
 
+    var calcCalendar = calcCalendar(calObj);
+
+    constructCalendar($container, calcCalendar);
+}
+
+/**
+ * Presenter Function
+ *
+ * @param calObj
+ * @return {Object}
+ */
+function calcCalendar(calObj) {
     var calcCalendar = {};
 
     calcCalendar.dayIt = {start: moment(calObj.from), end: moment(calObj.to)};
     calcCalendar.structure = calcCalendarStructure(calObj);
     calcCalendar.content = calcCalendarContent(calObj);
 
-    console.log(calcCalendar);
-
-    var sdBodyObj = buildCalendarStructure($container, calcCalendar.dayIt, calcCalendar.structure);
-
-    console.log(sdBodyObj);
-
-    buildCalendarContent(sdBodyObj, calcCalendar.dayIt, calcCalendar.content)
+    return calcCalendar;
 }
 
 /**
  * Calculate the overarching structure of the calendar
- * @param calObj
- * @returns {{}}
+ *
+ * @param calObj {Object}
+ * @returns {Object}
  */
 function calcCalendarStructure(calObj) {
     var startCal = moment(calObj.from),
@@ -52,6 +59,12 @@ function calcCalendarStructure(calObj) {
     return calStruct;
 }
 
+/**
+ * Calculate the content of the calendar
+ *
+ * @param calObj
+ * @returns {Object}
+ */
 function calcCalendarContent(calObj) {
     var startCal = moment(calObj.from),
         endCal = moment(calObj.to),
@@ -75,9 +88,10 @@ function calcCalendarContent(calObj) {
 }
 
 /**
- *
- * @param dailyEvents array
+ * Calculate the content for a single day
+ * @param dailyEvents
  * @param dayBounds
+ * @returns {Array}
  */
 function calcCalendarDailyContent(dailyEvents, dayBounds) {
     var array = [];
@@ -107,6 +121,15 @@ function calcCalendarDailyContent(dailyEvents, dayBounds) {
     return array;
 }
 
+/**
+ * Calculate the max number of concurrent events
+ *
+ * @param dailyEvents Collection
+ * @param calcEvent
+ * @param calcEventStart moment
+ * @param calcEventEnd moment
+ * @returns {number}
+ */
 function maxConcurrentEvents(dailyEvents, calcEvent, calcEventStart, calcEventEnd) {
     var arr = [],
         dailyEventsFiltered = _.without(dailyEvents, calcEvent);
@@ -119,6 +142,13 @@ function maxConcurrentEvents(dailyEvents, calcEvent, calcEventStart, calcEventEn
     return _.max(arr);
 }
 
+/**
+ * Calculate the number concurrent events for a bound
+ *
+ * @param dailyEventsFiltered Collection
+ * @param eventBound moment
+ * @returns {number}
+ */
 function concurrentEventsForBound(dailyEventsFiltered, eventBound) {
     var res = 0;
 
@@ -133,6 +163,14 @@ function concurrentEventsForBound(dailyEventsFiltered, eventBound) {
     return res;
 }
 
+/**
+ * Calculate the number concurrent events included inside the bounds
+ *
+ * @param dailyEventsFiltered Collection
+ * @param eventBoundStart moment
+ * @param eventBoundEnd moment
+ * @returns {number}
+ */
 function concurrentEventsForBounds(dailyEventsFiltered, eventBoundStart, eventBoundEnd) {
     var res = 0;
 
@@ -147,19 +185,46 @@ function concurrentEventsForBounds(dailyEventsFiltered, eventBoundStart, eventBo
     return res;
 }
 
+/**
+ * View Function
+ *
+ * @param $container
+ * @param calcCalendar
+ */
+function constructCalendar($container, calcCalendar) {
+    var sdBodyObj = constructCalendarStructure($container, calcCalendar.dayIt, calcCalendar.structure);
 
-function buildCalendarStructure($container, dayItObj, calcStructure) {
+    constructCalendarContent(sdBodyObj, calcCalendar.dayIt, calcCalendar.content)
+}
+
+/**
+ * Construct the calendar structure
+ *
+ * @param $container jQuery
+ * @param dayItObj
+ * @param calcStructure
+ * @returns {{jQuery}}
+ */
+function constructCalendarStructure($container, dayItObj, calcStructure) {
     var sdBodyObj = {};
 
     for (var dayIt = moment(dayItObj.start); dayIt.isSameOrBefore(dayItObj.end); dayIt.add(1, 'days')) {
         var dayStr = dayIt.format(ISO_DAY_FORMAT);
-        sdBodyObj[dayStr] = buildDailyStructure($container, calcStructure.sdWidth, calcStructure.singleDays[dayStr]);
+        sdBodyObj[dayStr] = constructDailyStructure($container, calcStructure.sdWidth, calcStructure.singleDays[dayStr]);
     }
 
     return sdBodyObj;
 }
 
-function buildDailyStructure($container, sdWidth, name) {
+/**
+ * Construct a single day element
+ *
+ * @param $container jQuery
+ * @param sdWidth
+ * @param name
+ * @returns {jQuery}
+ */
+function constructDailyStructure($container, sdWidth, name) {
     var dayDiv = document.createElement('div');
     dayDiv.className = 'single-day';
     dayDiv.style.setProperty('width', sdWidth, '');
@@ -178,7 +243,14 @@ function buildDailyStructure($container, sdWidth, name) {
     return $(dayDivBody);
 }
 
-function buildCalendarContent(sdBodyObj, dayItObj, calcContent) {
+/**
+ * Construct the calendar structure
+ *
+ * @param sdBodyObj {{jQuery}}
+ * @param dayItObj
+ * @param calcContent
+ */
+function constructCalendarContent(sdBodyObj, dayItObj, calcContent) {
     var sdBodyScale = calcContent.calcSingleDayBodyScale(sdBodyObj[dayItObj.start.format(ISO_DAY_FORMAT)]);
 
     for (var dayIt = moment(dayItObj.start); dayIt.isSameOrBefore(dayItObj.end); dayIt.add(1, 'days')) {
@@ -192,6 +264,13 @@ function buildCalendarContent(sdBodyObj, dayItObj, calcContent) {
     }
 }
 
+/**
+ * Construct a single event
+ *
+ * @param $sdBody jQuery
+ * @param event
+ * @param sdBodyScale
+ */
 function buildSingleEvent($sdBody, event, sdBodyScale) {
     var div = $(document.createElement('div'));
 
